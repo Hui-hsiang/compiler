@@ -1,0 +1,11 @@
+加入 include y.tab.hpp
+取消 token(t) 的 printf
+把keyword的token方法改掉（變成無法區分大小寫）以正常回傳token
+在token後加入return
+加入yylval的value回傳
+砍掉原本的symbol table
+
+
+Make 之後
+
+./parser 測試檔案(test.c / fib.scala / sigma.scala)
