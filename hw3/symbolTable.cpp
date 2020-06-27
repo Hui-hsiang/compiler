@@ -52,6 +52,7 @@ idInfo::idInfo(){
     int arraySize = 0;
     int returnType= unknowType;
     bool hasInit = false;
+    
 }
 
 symbolTable::symbolTable(){
@@ -137,6 +138,7 @@ idInfo* symbolTableList::lookup(string id){
     for (int i=top; i>=0;i--){
         idInfo *tmp = list[i].lookup(id);
         if (tmp != NULL){
+            tmp->symbolTable_index = i;
             return tmp;
         }
     }

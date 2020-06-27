@@ -1,10 +1,12 @@
 %{
-#include "symbolTable.hpp"
+
+#include "Assembler.hpp"
 #include "lex.yy.cpp"
 #define Trace(t)    if (Opt_P) cout << t << endl
 
 
 symbolTableList  tables;
+Assembler assember;
 int Opt_P = 1;
 void yyerror(string s);
 
@@ -55,11 +57,17 @@ PROGRAM:    OBJECT ID {
                 if (result == -1){
                    yyerror("id has been uesd");
                 }
+                assember.objinitial(*$2);
             }'{'
             STMTS METHODS
             '}'{
+                assember.objFinish();
                 if (tables.lookup("main") == NULL){
                     yyerror("have no main function!!");
+                }else{
+                    if(tables.lookup("main")->idType != functionType){
+                        yyerror("have no main function!!");
+                    }
                 }
             }
 
@@ -82,8 +90,20 @@ METHOD: DEF ID FUNC_OPTIONAL {
             if (result == -1){
                 yyerror("id has been uesd");
             }
+            if(*$2 == "main"){
+                assember.mainDEC();
+            }else{
+                assember.funDEC(*$2, $3);
+            }
             tables.push();
         } FUC_BLOCK {
+            if(*$2 == "main"){
+                assember.mainFinish();
+            }
+            else{
+                assember.funFinish();
+            }
+            assember.leaveBlock(*$2);
             tables.dump();
             tables.pop();
         }
@@ -94,8 +114,21 @@ METHOD: DEF ID FUNC_OPTIONAL {
             if (result == -1){
                 yyerror("id has been uesd");
             }
+            if(*$2 == "main"){
+                assember.mainDEC();
+            }
+            else{
+                assember.funDEC(*$2, $5);
+            }
             tables.push();
         } FUC_BLOCK {
+            if(*$2 == "main"){
+                assember.mainFinish();
+            }
+            else{
+                assember.funFinish();
+            }
+            assember.leaveBlock(*$2);
             tables.dump();
             tables.pop();
         }
@@ -109,7 +142,20 @@ METHOD: DEF ID FUNC_OPTIONAL {
             }
             idInfo* tmp = tables.lookup(*$2);
             tmp->arg = *$5;
+            if(*$2 == "main"){
+                assember.mainDEC();
+            }
+            else{
+                assember.funDEC(*$2, $5, $7);
+            }
         } FUC_BLOCK {
+            if(*$2 == "main"){
+                assember.mainFinish();
+            }
+            else{
+                assember.funFinish();
+            }
+            assember.leaveBlock(*$2);
             tables.dump();
             tables.pop();
         }
@@ -155,7 +201,15 @@ SIMPLE: ID '=' EXP {
             Trace("ID = EXP");
             idInfo* tmp = tables.lookup(*$1);
             if ( $3->valueType != tmp->value->valueType){
+                if (($3->valueType == floatType && tmp->value->valueType == intType) || ($3->valueType == intType && tmp->value->valueType == floatType) ){break;}
+                cout << $3->valueType<<tmp->value->valueType;
                 yyerror("Type error ");
+            }
+            idInfo* checkGlobal = tables.list[0].lookup(*$1);
+            if (checkGlobal == NULL){
+                assember.putLocal(tmp);
+            }else{
+                assember.putGlobal(tmp);
             }
         }
         | ID '[' EXP ']' '=' EXP{
@@ -163,8 +217,140 @@ SIMPLE: ID '=' EXP {
                 yyerror("index must be INT");
             }
         }
-        | PRINT '(' EXP ')' 
-        | PRINTLN '(' EXP ')'
+        | PRINT {
+
+            assember.output << "getstatic java.io.PrintStream java.lang.System.out\n";
+
+        }'(' EXP ')'{
+            switch ($4->valueType){
+                case intType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case floatType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(float)\n";
+                    break;
+                case boolType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case charType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(char)\n";
+                    break;
+                case stringType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(java.lang.String)\n";
+                    break;
+                case unknowType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case valueTypeError:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                default:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+            }
+        } 
+        | PRINTLN {
+
+            assember.output << "getstatic java.io.PrintStream java.lang.System.out\n";
+
+        }'(' EXP ')'{
+
+            switch ($4->valueType){
+                case intType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case floatType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(float)\n";
+                    break;
+                case boolType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case charType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(char)\n";
+                    break;
+                case stringType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(java.lang.String)\n";
+                    break;
+                case unknowType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case valueTypeError:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                default:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+            }
+
+        }
+        | PRINT{
+
+            assember.output << "getstatic java.io.PrintStream java.lang.System.out\n";
+
+        }  EXP {
+
+            switch ($3->valueType){
+                case intType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case floatType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(float)\n";
+                    break;
+                case boolType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case charType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(char)\n";
+                    break;
+                case stringType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(java.lang.String)\n";
+                    break;
+                case unknowType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case valueTypeError:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                default:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+            }
+
+        } 
+        | PRINTLN{
+
+            assember.output << "getstatic java.io.PrintStream java.lang.System.out\n";
+
+        }  EXP {
+
+            switch ($3->valueType){
+                case intType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case floatType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(float)\n";
+                    break;
+                case boolType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case charType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(char)\n";
+                    break;
+                case stringType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(java.lang.String)\n";
+                    break;
+                case unknowType:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                case valueTypeError:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+                default:
+                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    break;
+            }
+
+        }
         | READ ID
         | RETURN {Trace("return");}
         | RETURN EXP {Trace("return EXP");}
@@ -172,29 +358,39 @@ SIMPLE: ID '=' EXP {
 /*  BLOCK 實作
     Block 會在一開始push symbolTable
     結束時 pop symbolTable  */
-BLOCK:  '{'{
+BLOCK:  '{' {
             Trace("BLOCK");
+            assember.enterBlock();
             tables.push();
         } STMTS 
         '}' { 
+
             tables.dump();
             tables.pop();
         }
-FUC_BLOCK: '{' STMTS '}' { Trace("FUN_BLOCK");
-}
+FUC_BLOCK: '{' {
+                assember.enterBlock();
+            } STMTS '}' { 
+                Trace("FUN_BLOCK");
+            }
 
-CONDTIONAL_OPTIONAL: ELSE BLOCK { Trace("ELSE BLOCK");} 
-                    | ELSE {tables.push();}SIMPLE { 
+CONDTIONAL_OPTIONAL: ELSE BLOCK { 
+                        Trace("ELSE BLOCK");
+                        assember.elseFinish();
+                    } 
+                    | ELSE {Trace("ESLE");tables.push();} SIMPLE { 
                         Trace("ELSE SIMPLE");tables.dump();
+                        assember.elseFinish();
                         tables.pop();
                     }| ELSE CONDITIONAL { Trace("ELSE CONDITION");}
-                    |
+                    |{ assember.elseFinish(); }
 
 /*  CONDITIONAL 實作  */
-CONDITIONAL:    IF '(' EXP ')' BLOCK {
+CONDITIONAL:    IF '(' EXP ')' { assember.ifCondition();} BLOCK {
                     Trace("IF BLOCK");
                     if ($3->valueType != boolType){
                         yyerror("CONDITION SHOULD BE BOOL TYPE");
+                        assember.ifFinish();
                     }
                 } CONDTIONAL_OPTIONAL
                 | IF '(' EXP ')' {
@@ -203,29 +399,30 @@ CONDITIONAL:    IF '(' EXP ')' BLOCK {
                         yyerror("CONDITION SHOULD BE BOOL TYPE");
                     }
                     tables.push();
+                    assember.ifCondition();
                 }
                 SIMPLE{
                     tables.dump();
                     tables.pop();
+                    assember.ifFinish();
                 } CONDTIONAL_OPTIONAL
                 
 /*  LOOP 實作 */
-LOOP:   WHILE '(' EXP ')' BLOCK {
-            Trace("WHILE LOOP");
-            if ($3->valueType != boolType ){
-                yyerror("CONDITION SHOULD BE BOOL TYPE");
-            }
-        }
-        | WHILE '(' EXP ')' {
+
+LOOP_CONDTIONAL: SIMPLE|FUC_BLOCK
+
+LOOP:   WHILE {assember.whileLoopBegin();} '(' EXP ')' {
             tables.push();
             Trace("WHILE LOOP");
-            if ($3->valueType != boolType ){
+            if ($4->valueType != boolType ){
                 yyerror("CONDITION SHOULD BE BOOL TYPE");
             }
+            assember.whileLoopIn();
         } 
-        SIMPLE {
+        LOOP_CONDTIONAL {
             tables.dump();
             tables.pop();
+            assember.whileLoopexit();
         }
         | FOR '(' ID '<' '-' INT_CONST TO INT_CONST ')' BLOCK {
             Trace("FOR LOOP");
@@ -256,12 +453,24 @@ VAR_DEC:    VAR ID ':' DATA_TYPE '=' EXP {
                 if (result == -1){
                    yyerror("id has been uesd");
                 }
+                if (tables.top == 0){
+                    assember.globalVar($4, *$2);
+                }
+                else{
+                    assember.localVar(*$2, $6);
+                }
             }
             | VAR ID ':' DATA_TYPE {
                 Trace("VAR ID : DATA_TYPE");
                 int result =  tables.list[tables.top].insert(*$2, variableType, $4);
                 if (result == -1){
                    yyerror("id has been uesd");
+                }
+                if (tables.top == 0){
+                    assember.globalVar($4, *$2);
+                }
+                else{
+                    assember.localVar(*$2);
                 }
             }
             | VAR ID '=' EXP{
@@ -273,12 +482,24 @@ VAR_DEC:    VAR ID ':' DATA_TYPE '=' EXP {
                 if ($4->valueType == unknowType){
                     yyerror("valueType ERROR");
                 }
+                if (tables.top == 0){
+                    assember.globalVar($4->valueType, *$2);
+                }
+                else{
+                    assember.localVar(*$2, $4);
+                }
             }
             | VAR ID {
                 Trace("VAR ID");
                 int result =  tables.list[tables.top].insert(*$2, variableType);
                 if (result == -1){
                    yyerror("id has been uesd");
+                }
+                if (tables.top == 0){
+                    assember.globalVar(intType, *$2);
+                }
+                else{
+                    assember.localVar(*$2);
                 }
             }
             | VAR ID ':' DATA_TYPE '[' INT_CONST ']'{
@@ -287,28 +508,40 @@ VAR_DEC:    VAR ID ':' DATA_TYPE '=' EXP {
                 if (result == -1){
                    yyerror("id has been uesd");
                 }
+                if (tables.top == 0){
+                    
+                }
+                else{
+                    
+                }
             }
 
 /*  常數宣告 實作  */
-CONST_DEC:  VAL ID ':' DATA_TYPE '=' EXP {
+CONST_DEC:  VAL ID {
+                assember.fp = assember.output.tellp();
+                } ':' DATA_TYPE '=' EXP {
                 Trace("VAL ID : DATA_TYPE = EXP");
-                if ($4 != $6->valueType){
-                    if($4 != floatType && $6->valueType != floatType){
+                if ($5 != $7->valueType){
+                    if($5 != floatType && $7->valueType != floatType){
                         yyerror("TYPE ERROR");
                     }
                 }
-                int result =  tables.list[tables.top].insert(*$2, constType, $6);
+                int result =  tables.list[tables.top].insert(*$2, constType, $7);
                 if (result == -1){
                    yyerror("id has been uesd");
                 }
+                assember.output.seekp(assember.fp);
             }
-            | VAL ID '=' EXP {
+            | VAL ID {
+                assember.fp = assember.output.tellp();
+            } '=' EXP {
                 Trace("VAL ID = EXP");
-                int result = tables.list[tables.top].insert(*$2 ,constType, $4);
+                int result = tables.list[tables.top].insert(*$2 ,constType, $5);
                 
                 if (result == -1){
                     yyerror("id has been uesd");
                 }
+                assember.output.seekp(assember.fp);
             }
 /*  FUNCTION_INVOCATION 實作
     會回傳valueinfo pointer  */
@@ -327,7 +560,7 @@ FUNCTION_INVOCATION :   ID '(' ')'{
                             valueInfo* v = new valueInfo();
                             v->valueType = tmp->returnType;
 
-
+                            assember.funInvke(*$1,tmp->returnType);
 
                             $$ = v;
 
@@ -352,7 +585,7 @@ FUNCTION_INVOCATION :   ID '(' ')'{
                                     yyerror("arg not match");
                                 }
                             }
-
+                            assember.funInvke(*$1,tmp->returnType, $3);
 
                             $$ = v;
                         }
@@ -390,6 +623,9 @@ EXP :   '(' EXP ')'{
             else{
                 yyerror("EXP + EXP Type ERROR");
             }
+
+            assember.output << "iadd\n";
+
             $$ = tmp;
         }
         | EXP '-' EXP {
@@ -406,6 +642,9 @@ EXP :   '(' EXP ')'{
             else{
                 yyerror("EXP - EXP Type ERROR");
             }
+
+            assember.output << "isub\n";
+
             $$ = tmp;
         }
         | EXP '*' EXP {
@@ -422,6 +661,9 @@ EXP :   '(' EXP ')'{
             else{
                 yyerror("EXP * EXP Type ERROR");
             }
+
+            assember.output << "imul\n";
+
             $$ = tmp;
         }
         | EXP '/' EXP {
@@ -438,6 +680,9 @@ EXP :   '(' EXP ')'{
             else{
                 yyerror("EXP * EXP Type ERROR");
             }
+
+            assember.output << "idiv\n";
+
             $$ = tmp;
         }
         | '-' EXP %prec UMIUNS {
@@ -454,6 +699,9 @@ EXP :   '(' EXP ')'{
             else {
                 yyerror("- EXP ERROR");
             }
+
+            assember.output << "ineg\n";
+
             $$ = tmp;
         }
         | EXP OR EXP {
@@ -466,6 +714,9 @@ EXP :   '(' EXP ')'{
             else{
                 tmp->boolval = ($1->boolval || $3->boolval);
             }
+
+            assember.output << "ior\n";
+
             $$ = tmp;
 
         }
@@ -479,6 +730,9 @@ EXP :   '(' EXP ')'{
             else{
                 tmp->boolval = ($1->boolval && $3->boolval);
             }
+
+            assember.output << "iand\n";
+
             $$ = tmp;
         }
         | EXP '<' EXP {
@@ -491,6 +745,7 @@ EXP :   '(' EXP ')'{
             else{
                 tmp->boolval = ($1->boolval < $3->boolval);
             }
+            assember.ls();
             $$ = tmp;
         }
         | EXP '>' EXP {
@@ -503,6 +758,7 @@ EXP :   '(' EXP ')'{
             else{
                 tmp->boolval = ($1->boolval > $3->boolval);
             }
+            assember.gt();
             $$ = tmp;
         }
         | EXP EQ EXP {
@@ -530,6 +786,7 @@ EXP :   '(' EXP ')'{
             else{
                 yyerror("EXP == EXP ERROR");
             }
+            assember.eq();
             $$ = tmp;
         }
         | EXP GE EXP {
@@ -542,6 +799,7 @@ EXP :   '(' EXP ')'{
             else{
                 tmp->boolval = $1->boolval >= $3->boolval;
             }
+            assember.ge();
             $$ = tmp;
         }
         | EXP LE EXP {
@@ -554,6 +812,7 @@ EXP :   '(' EXP ')'{
             else{
                 tmp->boolval = $1->boolval <= $3->boolval;
             }
+            assember.le();
             $$ = tmp;
         }
         | EXP NEQ EXP {
@@ -581,6 +840,7 @@ EXP :   '(' EXP ')'{
             else{
                 yyerror("EXP != EXP ERROR");
             }
+            assember.ne();
             $$ = tmp;
         }
         | '!' EXP {
@@ -593,6 +853,9 @@ EXP :   '(' EXP ')'{
             else{
                 tmp->boolval = !($2->boolval);
             }
+
+            assember.output << "ixor\n";
+
             $$ = tmp;
         }
         | ID {
@@ -603,6 +866,14 @@ EXP :   '(' EXP ')'{
             }
             if (tmp->idType == arrayType){
                 yyerror("ID CANT NOT BE ARRAY");
+            }
+            if (tmp->idType == constType){
+                assember.pushConstant(tmp->value);
+            }
+            else if (tmp->symbolTable_index != 0){
+                assember.pushLocal(tmp);
+            }else{
+                assember.pushGlobal(tmp);
             }
             $$ = tmp->value;
         }
@@ -618,13 +889,12 @@ EXP :   '(' EXP ')'{
             if ($3->valueType != intType){
                 yyerror("index must be int");
             }
-            if ($3->intval >= tmp->arraySize || $3->intval < 0){
-                yyerror("access out of range");
-            }
+
             $$ = tmp->arrayValue[$3->intval];
             
         }
         | VALUE {
+            assember.pushConstant($1);
             Trace("VALUE");
             $$ = $1;
         }

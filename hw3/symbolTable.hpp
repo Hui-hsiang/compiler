@@ -55,6 +55,7 @@ struct idInfo{
     int returnType;
     int returnValue;
     bool hasInit;
+    int symbolTable_index;
 };
 
 struct symbolTable{
