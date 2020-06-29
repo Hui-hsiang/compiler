@@ -198,15 +198,19 @@ STMTS:  STMT {
 STMT:   SIMPLE | V_DEC | FUNCTION_INVOCATION | CONDITIONAL | LOOP
 
 SIMPLE: ID '=' EXP {
+
             Trace("ID = EXP");
             idInfo* tmp = tables.lookup(*$1);
             if ( $3->valueType != tmp->value->valueType){
-                if (($3->valueType == floatType && tmp->value->valueType == intType) || ($3->valueType == intType && tmp->value->valueType == floatType) ){break;}
-                cout << $3->valueType<<tmp->value->valueType;
-                yyerror("Type error ");
+                if (tmp->value->valueType == valueTypeError){tmp->value->valueType = $3->valueType;}
+                else if (($3->valueType == floatType && tmp->value->valueType == intType) || ($3->valueType == intType && tmp->value->valueType == floatType)){}
+                else{
+                    yyerror("Type error ");
+                }
             }
-            idInfo* checkGlobal = tables.list[0].lookup(*$1);
-            if (checkGlobal == NULL){
+
+
+            if (tmp->symbolTable_index != 0){
                 assember.putLocal(tmp);
             }else{
                 assember.putGlobal(tmp);
@@ -257,28 +261,28 @@ SIMPLE: ID '=' EXP {
 
             switch ($4->valueType){
                 case intType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(int)\n";
                     break;
                 case floatType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(float)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(float)\n";
                     break;
                 case boolType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(int)\n";
                     break;
                 case charType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(char)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(char)\n";
                     break;
                 case stringType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(java.lang.String)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(java.lang.String)\n";
                     break;
                 case unknowType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(int)\n";
                     break;
                 case valueTypeError:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(int)\n";
                     break;
                 default:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(int)\n";
                     break;
             }
 
@@ -325,28 +329,28 @@ SIMPLE: ID '=' EXP {
 
             switch ($3->valueType){
                 case intType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(int)\n";
                     break;
                 case floatType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(float)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(float)\n";
                     break;
                 case boolType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(int)\n";
                     break;
                 case charType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(char)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(char)\n";
                     break;
                 case stringType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(java.lang.String)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(java.lang.String)\n";
                     break;
                 case unknowType:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(int)\n";
                     break;
                 case valueTypeError:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(int)\n";
                     break;
                 default:
-                    assember.output << "invokevirtual void java.io.PrintStream.print(int)\n";
+                    assember.output << "invokevirtual void java.io.PrintStream.println(int)\n";
                     break;
             }
 
@@ -370,6 +374,7 @@ BLOCK:  '{' {
         }
 FUC_BLOCK: '{' {
                 assember.enterBlock();
+
             } STMTS '}' { 
                 Trace("FUN_BLOCK");
             }
@@ -390,8 +395,8 @@ CONDITIONAL:    IF '(' EXP ')' { assember.ifCondition();} BLOCK {
                     Trace("IF BLOCK");
                     if ($3->valueType != boolType){
                         yyerror("CONDITION SHOULD BE BOOL TYPE");
-                        assember.ifFinish();
                     }
+                    assember.ifFinish();
                 } CONDTIONAL_OPTIONAL
                 | IF '(' EXP ')' {
                     Trace("IF SIMPLE ");
@@ -424,40 +429,63 @@ LOOP:   WHILE {assember.whileLoopBegin();} '(' EXP ')' {
             tables.pop();
             assember.whileLoopexit();
         }
-        | FOR '(' ID '<' '-' INT_CONST TO INT_CONST ')' BLOCK {
-            Trace("FOR LOOP");
-        }
-        | FOR '(' ID '<' '-' INT_CONST TO INT_CONST ')' {
+        | FOR '(' ID {assember.fp = assember.output.tellp();} '<' '-' EXP TO EXP ')' {
             tables.push();
+
+            idInfo* tmp = tables.lookup(*$3);
+            if(tmp->idType == constType){
+                yyerror("const Type error!");
+            }
+            if($7->valueType != intType || $9->valueType != intType){
+                yyerror("range should be intType!");
+            }
+            assember.output.seekp(assember.fp);
+
+            if (tmp->symbolTable_index != 0){
+                assember.forLoopBegin(0, tmp, $7, $9);
+            }else{
+                assember.forLoopBegin(1, tmp, $7, $9);
+            }
+        
             Trace("FOR LOOP");
         }
-        SIMPLE {
-            
+        FOR_OPTIONAL {
+            idInfo* tmp = tables.lookup(*$3);
+            if (tmp->symbolTable_index != 0){
+                assember.forLoopFinish(0, tmp, $7, $9);
+            }else{
+                assember.forLoopFinish(1, tmp, $7, $9);
+            }
+
             tables.dump();
             tables.pop();
         }
+
+FOR_OPTIONAL :  SIMPLE|FUC_BLOCK
+
 /*  變數和常數宣告 實作  */
 V_DEC:    CONST_DEC | VAR_DEC
 
 /*  變數宣告 實作  
     會判斷將變數用Class valueinfo 紀錄 並insert 到 symbolTable
 */
-VAR_DEC:    VAR ID ':' DATA_TYPE '=' EXP {
+VAR_DEC:    VAR ID {assember.fp = assember.output.tellp();} ':' DATA_TYPE '=' EXP {
                 Trace("VAR ID : DATA_TYPE = EXP");
-                if ($4 != $6->valueType){
-                    if($4 != floatType && $6->valueType != floatType){
+                if ($5 != $7->valueType){
+                    if($5 != floatType && $7->valueType != floatType){
                         yyerror("TYPE ERROR");
                     }
                 }
-                int result =  tables.list[tables.top].insert(*$2, variableType, $6);
+                int result =  tables.list[tables.top].insert(*$2, variableType, $7);
                 if (result == -1){
                    yyerror("id has been uesd");
                 }
                 if (tables.top == 0){
-                    assember.globalVar($4, *$2);
+                    assember.output.seekp(assember.fp);
+                    assember.globalVar($7->valueType, *$2, $7);
                 }
                 else{
-                    assember.localVar(*$2, $6);
+                    assember.localVar(*$2, $7);
                 }
             }
             | VAR ID ':' DATA_TYPE {
@@ -473,20 +501,21 @@ VAR_DEC:    VAR ID ':' DATA_TYPE '=' EXP {
                     assember.localVar(*$2);
                 }
             }
-            | VAR ID '=' EXP{
+            | VAR ID {assember.fp = assember.output.tellp();} '=' EXP{
                 Trace("VAR ID  = EXP");
-                int result =  tables.list[tables.top].insert(*$2, variableType, $4);
+                int result =  tables.list[tables.top].insert(*$2, variableType, $5);
                 if (result == -1){
                    yyerror("id has been uesd");
                 }
-                if ($4->valueType == unknowType){
+                if ($5->valueType == unknowType){
                     yyerror("valueType ERROR");
                 }
                 if (tables.top == 0){
-                    assember.globalVar($4->valueType, *$2);
+                    assember.output.seekp(assember.fp);
+                    assember.globalVar($5->valueType, *$2, $5);
                 }
                 else{
-                    assember.localVar(*$2, $4);
+                    assember.localVar(*$2, $5);
                 }
             }
             | VAR ID {
@@ -807,11 +836,12 @@ EXP :   '(' EXP ')'{
             valueInfo* tmp = new valueInfo();
             tmp->valueType = boolType;
             if($1->valueType != $3->valueType){
+                if($1->valueType == floatType &&  $3->valueType == intType || $1->valueType == intType && $3->valueType == floatType){break;}
                 yyerror("Type ERROR");
             }
-            else{
-                tmp->boolval = $1->boolval <= $3->boolval;
-            }
+
+            tmp->boolval = $1->boolval <= $3->boolval;
+
             assember.le();
             $$ = tmp;
         }

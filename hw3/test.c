@@ -1,28 +1,42 @@
 /*
  * Example with Functions
- */
-object example { 
-	val a = 5	// constants val a = 5
-	// variables
-	var c : int
-	// function declaration
-	def add (a: int, b: int) : int {
-		return a + b 
-	}
-	// main statements
-	def main() {
-		c = add(a, 10) 
-		if (c > 10) print -c 
-		else print c
+ * 
+ * 
+ * def ifelseTest(){
+		if (true){ print "if" }
+		else if (false) {
+			print "else if 1 "
+			if(false){
+				print ("else if if ")
+			}
+			else{
+				print "else if else"
+			}
+			
+			}
+		else if (true) {print "elseIf2"}
+		else {print "else"}
 		println ("Hello World")
 
-		var n = 1
-		while (n <= 10) {
-			n = n + 1
-			println(n)
-		}  
-		
-			
+		var a = 6
+		for (a <- 1 to 10){
+			print(a)
+		}
 
-	} 
+
+	}
+ */
+
+object example { 
+	var i = 0
+	def main(){
+		var a = 6
+		for (i <- 1 to 4){
+			print ("n = ")
+			println i
+			for (a <- 5 to 15){
+				println(a)
+			}
+		}
+	}
 }

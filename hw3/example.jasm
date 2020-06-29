@@ -1,65 +1,59 @@
 Class example
 {
-field static int c
-method public static int add(int , int )
-max_stack 15
-max_Locals 15
-{
-iload 1
-iload 0
-iadd
-ireturn
-}
+field static int i = 0
 method public static void main(java.lang.String[])
 max_stack 15
 max_Locals 15
 {
-sipush 5
-sipush 10
-invokestatic int example.add(int , int )
-putstatic int  example.c
-getstatic int  example.c
-sipush 10
+sipush 6
+istore 0
+sipush 1
+putstatic int  example.i
+getstatic int  example.i
+L0:
+sipush 4
 isub
-ifgt L0
+iflt L1
 iconst_0
-goto L1
-L0: iconst_1
-L1:
-ifeq L2
-getstatic java.io.PrintStream java.lang.System.out
-getstatic int  example.c
-ineg
-invokevirtual void java.io.PrintStream.print(int)
-goto L3
+goto L2
+L1: iconst_1
 L2:
+ifeq L3
 getstatic java.io.PrintStream java.lang.System.out
-getstatic int  example.c
-invokevirtual void java.io.PrintStream.print(int)
-L3:
-getstatic java.io.PrintStream java.lang.System.out
-ldc "Hello World"
+ldc "n = "
 invokevirtual void java.io.PrintStream.print(java.lang.String)
-sipush 1
-n = 2, next number 3
-sipush 1
-istore 2
+getstatic java.io.PrintStream java.lang.System.out
+getstatic int  example.i
+invokevirtual void java.io.PrintStream.println(int)
+sipush 5
+istore 0
+iload 0
 L4:
-iload 2
-sipush 10
+sipush 15
 isub
-ifle L5
+iflt L5
 iconst_0
 goto L6
 L5: iconst_1
 L6:
-ifeq L7:
-iload 2
+ifeq L7
+getstatic java.io.PrintStream java.lang.System.out
+iload 0
+invokevirtual void java.io.PrintStream.println(int)
+iload 0
 sipush 1
 iadd
-istore 2
+istore 0
+iload 0
 goto L4
 L7:
+getstatic int  example.i
+sipush 1
+iadd
+putstatic int  example.i
+getstatic int  example.i
+goto L0
+L3:
 return
 }
 }

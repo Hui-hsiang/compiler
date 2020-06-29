@@ -29,6 +29,7 @@ public:
     vector<string> outputString;
     string objid;
     string fileName;
+    vector<streampos> if_fps;
     streampos fp;
     string nowFunction;
     vector<string> localVeriableNumber;
@@ -93,11 +94,42 @@ public:
         outputString.pop_back();
         
     }
+    
     void globalVar(int type , string id){
         
-
         output << "field static " << Type2String(type) <<  id << endl;
-               
+        
+    }
+    void globalVar(int type , string id, valueInfo* value){
+        
+        output << "field static " << Type2String(type) <<  id << " = " ;
+        switch (value->valueType) {
+            case intType:
+                output << value->intval;
+                break;
+            case floatType:
+                output << value->floatval;
+                break;
+            case boolType:
+                
+                if (value->boolval){
+                    output << "1";
+                }else{
+                    output << "0";
+                }
+                break;
+            case charType:
+                output << value->charval;
+                break;
+            case stringType:
+                output << *(value->stringval) ;
+                break;
+            default:
+                output << value->intval;
+                break;
+        }
+        output << endl;
+        
         
     }
     void localVar(string id){
@@ -105,10 +137,6 @@ public:
         localVeriableNumber.push_back(id);
         
 
-        output << id << " = " << localVeriableNumber.size() - 1 << ", next number " << localVeriableNumber.size() << endl;
-
-        
-        
         funcStack[nowFunction] = localVeriableNumber;
         
     }
@@ -120,33 +148,9 @@ public:
         
         
 
-        output << id << " = " << localVeriableNumber.size() - 1 << ", next number " << localVeriableNumber.size() << endl;
         
-        switch (value->valueType) {
-            case intType:
-                output << "sipush " << value->intval <<endl;
-                break;
-            case floatType:
-                output << "sipush " << value->floatval<<endl;
-                break;
-            case boolType:
-                output << "iconst_";
-                if (value->boolval){
-                    output << "1"<<endl;
-                }else{
-                    output << "0"<<endl;
-                }
-                break;
-            case charType:
-                output << "sipush " << value->charval<<endl;
-                break;
-            case stringType:
-                output << "ldc \"" << value->stringval << "\""<<endl;
-                break;
-            default:
-                output << "sipush " << value->intval<<endl;
-                break;
-        }
+        
+
         output << "istore " << localVeriableNumber.size() - 1<<endl;
 
         
@@ -156,7 +160,7 @@ public:
     void enterBlock(){
         
         
-        cout << "entering block, next number 0\n";
+        
         
         
         
@@ -164,8 +168,7 @@ public:
     void leaveBlock(string id){
         
         
-        cout << "leaving block, symbol table entries:\n";
-        cout << "<\"" << localVeriableNumber[localVeriableNumber.size() - 1] << "\", " << "veriable,"<< localVeriableNumber.size() - 1 << ">";
+        
         
         
     
@@ -412,9 +415,12 @@ public:
         
         
         
-        output << "goto L" << Lcount <<endl;
+        output << "goto L";
+        fp = output.tellp();
+        if_fps.push_back(fp);
+        output << "      ";
         
-        output << "L" << Lstack[Lstack.size()-1] << ":"<<endl;
+        output <<endl<< "L" << Lstack[Lstack.size()-1] << ":"<<endl;
         Lstack.pop_back();
         Lstack.push_back(Lcount);
         Lcount++;
@@ -424,11 +430,23 @@ public:
 
     void elseFinish(){
         
-        
+        streampos now_fp;
+
+        output << "goto L"<<Lstack[Lstack.size()-1]<<endl;
         output << "L" << Lstack[Lstack.size()-1] <<":"<<endl;
+        now_fp = output.tellp();
+        
+        for(int i=0; i<if_fps.size();i++){
+            output.seekp(if_fps[i]);
+            output << Lstack[Lstack.size()-1];
+        }
+        if_fps.clear();
+        output.seekp(now_fp);
         Lstack.pop_back();
         
+        
     }
+    
     void whileLoopBegin(){
         
         
@@ -442,7 +460,7 @@ public:
     void whileLoopIn(){
         
         
-        output << "ifeq L" << Lcount << ":\n";
+        output << "ifeq L" << Lcount << "\n";
         Lstack.push_back(Lcount);
         Lcount++;
         
@@ -457,6 +475,43 @@ public:
         Lstack.pop_back();
         
 
+    }
+    void forLoopBegin(int Global, idInfo* id, valueInfo* from, valueInfo* end){
+        pushConstant(from);
+        if (Global == 0){
+            putLocal(id);
+            pushLocal(id);
+        }
+        else {
+            putGlobal(id);
+            pushGlobal(id);
+        }
+        whileLoopBegin();
+        pushConstant(end);
+        ls();
+        whileLoopIn();
+        
+        
+    }
+    void forLoopFinish(int Global, idInfo* id, valueInfo* from, valueInfo* end){
+        valueInfo* one = intValue(1);
+        if (Global == 0){
+            pushLocal(id);
+        }
+        else {
+            pushGlobal(id);
+        }
+        pushConstant(one);
+        output << "iadd\n";
+        if (Global == 0){
+            putLocal(id);
+            pushLocal(id);
+        }
+        else {
+            putGlobal(id);
+            pushGlobal(id);
+        }
+        whileLoopexit();
     }
     
 };

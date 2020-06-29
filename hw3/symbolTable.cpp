@@ -123,7 +123,7 @@ int symbolTable::insert(string id, int idType){
     idInfo *tmp = new idInfo();
     tmp->idType = idType;
     tmp->id = id;
-    tmp->value = NULL;
+    tmp->value = new valueInfo();
     tmp->returnType = unknowType;
     tmp->hasInit = false;
     idMap[id] = tmp;
