@@ -122,7 +122,7 @@ public:
                 output << value->charval;
                 break;
             case stringType:
-                output << *(value->stringval) ;
+                output << "\"" << *(value->stringval) << "\"" ;
                 break;
             default:
                 output << value->intval;
@@ -215,10 +215,10 @@ public:
         
         switch (value->valueType) {
             case intType:
-                output << "sipush " << value->intval;
+                output << "ldc " << value->intval;
                 break;
             case floatType:
-                output << "sipush " << value->floatval;
+                output << "ldc " << value->floatval;
                 break;
             case boolType:
                 output << "iconst_";
@@ -229,13 +229,13 @@ public:
                 }
                 break;
             case charType:
-                output << "sipush " << value->charval;
+                output << "ldc " << value->charval;
                 break;
             case stringType:
                 output << "ldc \"" << *(value->stringval) << "\"";
                 break;
             default:
-                output << "sipush " << value->intval;
+                output << "ldc " << value->intval;
                 break;
         }
         output << endl;

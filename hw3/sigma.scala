@@ -47,7 +47,7 @@ object sigma
     else{
       println("i!= 1 or 0 ")
     }
-    for(sum <- 10 to 10){
+    for(sum <- 8 to 10){
       println(index)
       index = index + 1
       for(i <- 0 to 10){

@@ -208,7 +208,9 @@ SIMPLE: ID '=' EXP {
                     yyerror("Type error ");
                 }
             }
-
+            if(tmp->idType == constType){
+                yyerror("ID is constant!");
+            }
 
             if (tmp->symbolTable_index != 0){
                 assember.putLocal(tmp);
@@ -469,10 +471,24 @@ V_DEC:    CONST_DEC | VAR_DEC
 /*  變數宣告 實作  
     會判斷將變數用Class valueinfo 紀錄 並insert 到 symbolTable
 */
-VAR_DEC:    VAR ID {assember.fp = assember.output.tellp();} ':' DATA_TYPE '=' EXP {
+VAR_OPTIONAL: 
+VAR_DEC:    VAR ID ':' DATA_TYPE {
+                Trace("VAR ID : DATA_TYPE");
+                int result =  tables.list[tables.top].insert(*$2, variableType, $4);
+                if (result == -1){
+                   yyerror("id has been uesd");
+                }
+                if (tables.top == 0){
+                    assember.globalVar($4, *$2);
+                }
+                else{
+                    assember.localVar(*$2);
+                }
+            }|    
+            VAR ID ':' DATA_TYPE {assember.fp = assember.output.tellp();} '=' EXP {
                 Trace("VAR ID : DATA_TYPE = EXP");
-                if ($5 != $7->valueType){
-                    if($5 != floatType && $7->valueType != floatType){
+                if ($4 != $7->valueType){
+                    if($4 != floatType && $7->valueType != floatType){
                         yyerror("TYPE ERROR");
                     }
                 }
@@ -486,19 +502,6 @@ VAR_DEC:    VAR ID {assember.fp = assember.output.tellp();} ':' DATA_TYPE '=' EX
                 }
                 else{
                     assember.localVar(*$2, $7);
-                }
-            }
-            | VAR ID ':' DATA_TYPE {
-                Trace("VAR ID : DATA_TYPE");
-                int result =  tables.list[tables.top].insert(*$2, variableType, $4);
-                if (result == -1){
-                   yyerror("id has been uesd");
-                }
-                if (tables.top == 0){
-                    assember.globalVar($4, *$2);
-                }
-                else{
-                    assember.localVar(*$2);
                 }
             }
             | VAR ID {assember.fp = assember.output.tellp();} '=' EXP{
@@ -518,7 +521,7 @@ VAR_DEC:    VAR ID {assember.fp = assember.output.tellp();} ':' DATA_TYPE '=' EX
                     assember.localVar(*$2, $5);
                 }
             }
-            | VAR ID {
+            | VAR ID {assember.fp = assember.output.tellp();}{
                 Trace("VAR ID");
                 int result =  tables.list[tables.top].insert(*$2, variableType);
                 if (result == -1){
@@ -531,9 +534,9 @@ VAR_DEC:    VAR ID {assember.fp = assember.output.tellp();} ':' DATA_TYPE '=' EX
                     assember.localVar(*$2);
                 }
             }
-            | VAR ID ':' DATA_TYPE '[' INT_CONST ']'{
+            | VAR ID {assember.fp = assember.output.tellp();} ':' DATA_TYPE '[' INT_CONST ']'{
                 Trace("VAR ID : DATA_TYPE [NUM]");
-                int result =  tables.list[tables.top].insert(*$2, arrayType, $4, $6);
+                int result =  tables.list[tables.top].insert(*$2, arrayType, $5, $7);
                 if (result == -1){
                    yyerror("id has been uesd");
                 }
